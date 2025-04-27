@@ -3,54 +3,66 @@ import os
 import requests
 
 from boxing.utils.logger import configure_logger
+from dotenv import load_dotenv
 
+load_dotenv()
+
+#Get api info
+X-RAPIDAPI-KEY = os.getenv('X-RAPIDAPI-KEY')
+X-RAPIDAPI-HOST = os.getenv('X-RAPIDAPI-HOST')
 
 logger = logging.getLogger(__name__)
 configure_logger(logger)
 
 
-RANDOM_ORG_URL = os.getenv("RANDOM_ORG_URL",
-                           "https://www.random.org/decimal-fractions/?num=1&dec=2&col=1&format=plain&rnd=new")
+base_URL = "https://imdb232.p.rapidapi.com/api/search"
 
 
-def get_random() -> float:
+def get_movie_info(movie_name):
     """
-    Fetches a random float between 0 and 1 from random.org.
+    Gets movie infromation such as title and release year from imdb232.p.rapidapi.com.
 
     Returns:
-        float: The random number fetched from random.org.
+        JSON: Returns the JSON dictonary of info for the movie.
 
     Raises:
-        ValueError: If the response from random.org is not a valid float.
-        RuntimeError: If the request to random.org fails due to a timeout or other request-related error.
+        ValueError: If the response from imdb232.p.rapidapi.com is not a successful status code.
+        RuntimeError: If the request to imdb232.p.rapidapi.com fails due to a timeout or other request-related error.
 
     """
     try:
-        logger.info(f"Fetching random number from {RANDOM_ORG_URL}")
+        logger.info(f"Fetching movie info from {base_URL}")
 
-        response = requests.get(RANDOM_ORG_URL, timeout=5)
+        url = f"{base_URL}?count=25&type=MOVIE&q={movie_name}"
+        headers = {
+        "X-RapidAPI-Key": X-RAPIDAPI-KEY,
+        "X-RapidAPI-Host": X-RAPIDAPI-HOST
+        }
+
+        response = requests.get(url, headers, timeout=5)
 
         # Check if the request was successful
         response.raise_for_status()
 
-        random_number_str = response.text.strip()
+        #random_number_str = response.text.strip()
+        #
+        # try:
+        #     random_number = float(random_number_str)
+        # except ValueError:
+        #     logger.error(f"Invalid response from random.org: {random_number_str}")
+        #     raise ValueError(f"Invalid response from random.org: {random_number_str}")
+        # I DONT KNOW IF THIS ERROR CHECK IS APPLICABLE
 
-        try:
-            random_number = float(random_number_str)
-        except ValueError:
-            logger.error(f"Invalid response from random.org: {random_number_str}")
-            raise ValueError(f"Invalid response from random.org: {random_number_str}")
+        logger.debug(f"Received a JSON dictonary: {response.json()}")
+        logger.info(f"Successfully retrieved movie info")
 
-        logger.debug(f"Received random number: {random_number:.3f}")
-        logger.info(f"Successfully fetched random number")
-
-        return random_number
+        return response.json()
 
     except requests.exceptions.Timeout:
-        logger.error("Request to random.org timed out.")
-        raise RuntimeError("Request to random.org timed out.")
+        logger.error("Request to imdb232.p.rapidapi.com timed out.")
+        raise RuntimeError("Request to imdb232.p.rapidapi.com timed out.")
 
     except requests.exceptions.RequestException as e:
-        logger.error(f"Request to random.org failed: {e}")
-        raise RuntimeError(f"Request to random.org failed: {e}")
+        logger.error(f"Request to imdb232.p.rapidapi.com failed: {e}")
+        raise RuntimeError(f"Request to imdb232.p.rapidapi.com failed: {e}")
 
