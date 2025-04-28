@@ -9,9 +9,9 @@ from config import ProductionConfig
 
 from new_idea.db import db
 from new_idea.model.movies_model import Movie
-from New_idea.model.user_model import Users
+from new_idea.model.user_model import Users
 from new_idea.utils.logger import configure_logger
-from new_idea.utils.app_utils import get_movie_info
+from new_idea.utils.api_utils import get_movie_info
 
 
 load_dotenv()
