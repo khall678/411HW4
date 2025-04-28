@@ -9,7 +9,7 @@ from new_idea.utils.api_utils import get_random
 logger = logging.getLogger(__name__)
 configure_logger(logger)
 
-class Movies(db.Model):
+class Movie(db.Model):
     __tablename__ = 'movies'
 
 # Define columns for the table
