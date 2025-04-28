@@ -2,7 +2,7 @@ import logging
 import os
 import requests
 
-from boxing.utils.logger import configure_logger
+from new_idea.utils.logger import configure_logger
 from dotenv import load_dotenv
 
 load_dotenv()
