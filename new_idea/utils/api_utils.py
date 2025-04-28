@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 #Get api info
-X-RAPIDAPI-KEY = os.getenv('X-RAPIDAPI-KEY')
-X-RAPIDAPI-HOST = os.getenv('X-RAPIDAPI-HOST')
+X_RAPIDAPI_KEY = os.getenv('X-RAPIDAPI-KEY')
+X_RAPIDAPI_HOST = os.getenv('X-RAPIDAPI-HOST')
 
 logger = logging.getLogger(__name__)
 configure_logger(logger)
@@ -35,11 +35,11 @@ def get_movie_info(movie_name):
 
         url = f"{base_URL}?count=25&type=MOVIE&q={movie_name}"
         headers = {
-        "X-RapidAPI-Key": X-RAPIDAPI-KEY,
-        "X-RapidAPI-Host": X-RAPIDAPI-HOST
+        "X-RapidAPI-Key": X_RAPIDAPI_KEY,
+        "X-RapidAPI-Host": X_RAPIDAPI_HOST
         }
 
-        response = requests.get(url, headers, timeout=5)
+        response = requests.get(url, headers=headers, timeout=5)
 
         # Check if the request was successful
         response.raise_for_status()
