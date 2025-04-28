@@ -8,7 +8,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from config import ProductionConfig
 
 from new_idea.db import db
-from new_idea.model.movies_model import Movie
+from new_idea.model.movies_model import Movies
 from new_idea.model.user_model import Users
 from new_idea.utils.logger import configure_logger
 from new_idea.utils.api_utils import get_movie_info
@@ -42,7 +42,7 @@ def create_app(config_class=ProductionConfig):
         }), 401)
 
 
-
+    movie_model = Movies()
 
     ####################################################
     #
@@ -264,147 +264,149 @@ def create_app(config_class=ProductionConfig):
     #
     ##########################################################
 
-@app.route('/api/add-favorite-movie', methods=['POST'])
-@login_required
-def add_favorite_movie():
-    """Route to add a movie to the user's favorite list"""
-    try:
-        data = request.get_json()
-        movie_name = data.get("name")
+    @app.route('/api/add-favorite-movie', methods=['POST'])
+    @login_required
+    def add_favorite_movie():
+        """Route to add a movie to the user's favorite list"""
+        try:
+            data = request.get_json()
+            movie_name = data.get("name")
 
-        # Fetch movie details from the external API (IMDb via RapidAPI)
-        movie_details = get_movie_info(movie_name)
-        if not movie_details or 'results' not in movie_details or len(movie_details['results']) == 0:
+            # Fetch movie details from the external API (IMDb via RapidAPI)
+            movie_details = get_movie_info(movie_name)
+            if not movie_details or 'results' not in movie_details or len(movie_details['results']) == 0:
+                return make_response(jsonify({
+                    "status": "error",
+                    "message": "Movie not found"
+                }), 400)
+
+            movie_info = movie_details['results'][0]
+            genre = movie_info.get("genre", "Unknown")
+            description = movie_info.get("description", "No description available.")
+            year = movie_info.get("year", "Unknown")
+
+            # Store the movie in the database (or some in-memory store)
+            movie = movie_model.add_favorite_movie(movie_name, genre, description, year)
+            
+            return make_response(jsonify({
+                "status": "success",
+                "message": f"Movie '{movie_name}' added to favorites."
+            }), 201)
+
+        except Exception as e:
+            app.logger.error(f"Error adding favorite movie: {e}")
             return make_response(jsonify({
                 "status": "error",
-                "message": "Movie not found"
-            }), 400)
-
-        movie_info = movie_details['results'][0]
-        genre = movie_info.get("genre", "Unknown")
-        description = movie_info.get("description", "No description available.")
-        year = movie_info.get("year", "Unknown")
-
-        # Store the movie in the database (or some in-memory store)
-        movie = Movie.create_movie(movie_name, genre, description, year)
-        
-        return make_response(jsonify({
-            "status": "success",
-            "message": f"Movie '{movie_name}' added to favorites."
-        }), 201)
-
-    except Exception as e:
-        app.logger.error(f"Error adding favorite movie: {e}")
-        return make_response(jsonify({
-            "status": "error",
-            "message": "An error occurred while adding the movie.",
-            "details": str(e)
-        }), 500)
+                "message": "An error occurred while adding the movie.",
+                "details": str(e)
+            }), 500)
 
 
-@app.route('/api/get-favorite-movie', methods=['GET'])
-@login_required
-def get_favorite_movie():
-    """Route to get details of a specific favorite movie"""
-    try:
-        movie_id = request.args.get('id')
-        movie = Movie.get_movie_by_id(movie_id)
-        if not movie:
-            return make_response(jsonify({
-                "status": "error",
-                "message": "Movie not found"
-            }), 404)
-        
-        # Fetch movie details from the API (optional to keep data updated)
-        movie_details = get_movie_info(movie.name)
-
-        return make_response(jsonify({
-            "status": "success",
-            "movie": movie_details
-        }), 200)
-
-    except Exception as e:
-        app.logger.error(f"Error fetching favorite movie: {e}")
-        return make_response(jsonify({
-            "status": "error",
-            "message": "An error occurred while fetching the movie.",
-            "details": str(e)
-        }), 500)
-
-
-@app.route('/api/view-all-favorites', methods=['GET'])
-@login_required
-def view_all_favorites():
-    """Route to view all favorite movies"""
-    try:
-        favorite_movies = Movie.get_all_movies()
-        all_movies_details = []
-        for movie in favorite_movies:
-            # Get updated details from the API
+    @app.route('/api/get-favorite-movie', methods=['GET'])
+    @login_required
+    def get_favorite_movie():
+        """Route to get details of a specific favorite movie"""
+        try:
+            movie_id = request.args.get('id')
+            movie = movie_model.get_movie_details(movie_id)
+            if not movie:
+                return make_response(jsonify({
+                    "status": "error",
+                    "message": "Movie not found"
+                }), 404)
+            
+            # Fetch movie details from the API (optional to keep data updated)
             movie_details = get_movie_info(movie.name)
-            all_movies_details.append(movie_details)
-        
-        return make_response(jsonify({
-            "status": "success",
-            "movies": all_movies_details
-        }), 200)
 
-    except Exception as e:
-        app.logger.error(f"Error viewing all favorites: {e}")
-        return make_response(jsonify({
-            "status": "error",
-            "message": "An error occurred while viewing all favorite movies.",
-            "details": str(e)
-        }), 500)
+            return make_response(jsonify({
+                "status": "success",
+                "movie": movie_details
+            }), 200)
 
-
-@app.route('/api/see-all-favorites', methods=['GET'])
-@login_required
-def see_all_favorites():
-    """Route to see all favorite movie names"""
-    try:
-        favorite_movies = Movie.get_all_movies()
-        movie_names = [movie.name for movie in favorite_movies]
-        
-        return make_response(jsonify({
-            "status": "success",
-            "movies": movie_names
-        }), 200)
-
-    except Exception as e:
-        app.logger.error(f"Error seeing all favorites: {e}")
-        return make_response(jsonify({
-            "status": "error",
-            "message": "An error occurred while retrieving favorite movie names.",
-            "details": str(e)
-        }), 500)
-
-
-@app.route('/api/delete-favorite-movie', methods=['DELETE'])
-@login_required
-def delete_favorite_movie():
-    """Route to delete a movie from favorites"""
-    try:
-        movie_id = request.args.get('id')
-        movie = Movie.delete_movie(movie_id)
-        if not movie:
+        except Exception as e:
+            app.logger.error(f"Error fetching favorite movie: {e}")
             return make_response(jsonify({
                 "status": "error",
-                "message": "Movie not found"
-            }), 404)
+                "message": "An error occurred while fetching the movie.",
+                "details": str(e)
+            }), 500)
 
-        return make_response(jsonify({
-            "status": "success",
-            "message": f"Movie with ID {movie_id} removed from favorites."
-        }), 200)
 
-    except Exception as e:
-        app.logger.error(f"Error deleting favorite movie: {e}")
-        return make_response(jsonify({
-            "status": "error",
-            "message": "An error occurred while deleting the movie.",
-            "details": str(e)
-        }), 500)
+    @app.route('/api/view-all-favorites', methods=['GET'])
+    @login_required
+    def view_all_favorites():
+        """Route to view all favorite movies"""
+        try:
+            favorite_movies = movie_model.view_all_favorites()
+            all_movies_details = []
+            for movie in favorite_movies:
+                # Get updated details from the API
+                movie_details = get_movie_info(movie.name)
+                all_movies_details.append(movie_details)
+            
+            return make_response(jsonify({
+                "status": "success",
+                "movies": all_movies_details
+            }), 200)
+
+        except Exception as e:
+            app.logger.error(f"Error viewing all favorites: {e}")
+            return make_response(jsonify({
+                "status": "error",
+                "message": "An error occurred while viewing all favorite movies.",
+                "details": str(e)
+            }), 500)
+
+
+    @app.route('/api/see-all-favorites', methods=['GET'])
+    @login_required
+    def see_all_favorites():
+        """Route to see all favorite movie names"""
+        try:
+            favorite_movies = movie_model.see_all_favorites()
+            movie_names = [movie.name for movie in favorite_movies]
+            
+            return make_response(jsonify({
+                "status": "success",
+                "movies": movie_names
+            }), 200)
+
+        except Exception as e:
+            app.logger.error(f"Error seeing all favorites: {e}")
+            return make_response(jsonify({
+                "status": "error",
+                "message": "An error occurred while retrieving favorite movie names.",
+                "details": str(e)
+            }), 500)
+
+
+    @app.route('/api/delete-favorite-movie', methods=['DELETE'])
+    @login_required
+    def delete_favorite_movie():
+        """Route to delete a movie from favorites"""
+        try:
+            movie_id = request.args.get('id')
+            movie = movie_model.delete_favorite_movie(movie_id)
+            if not movie:
+                return make_response(jsonify({
+                    "status": "error",
+                    "message": "Movie not found"
+                }), 404)
+
+            return make_response(jsonify({
+                "status": "success",
+                "message": f"Movie with ID {movie_id} removed from favorites."
+            }), 200)
+
+        except Exception as e:
+            app.logger.error(f"Error deleting favorite movie: {e}")
+            return make_response(jsonify({
+                "status": "error",
+                "message": "An error occurred while deleting the movie.",
+                "details": str(e)
+            }), 500)
+
+    return app
 
 if __name__ == '__main__':
     app = create_app()

@@ -30,13 +30,12 @@ def sample_movies(sample_movie1, sample_movie2):
 
 
 # --- Add Favorite Movie ---
-def test_add_favorite_movie(app):
-    """Test that a movie can be added to the favorites list."""
-    movie = Movies.add_favorite_movie(name="Toy Story", genre="Animation", description="Toys come to life", year="1995")
-    assert movie.name == "Toy Story"
-    assert movie.genre == "Animation"
-    assert movie.description == "Toys come to life"
-    assert movie.year == "1995"
+def test_add_favorite_movie(client, movie_data):
+    # Make sure the movie data is valid
+    response = client.post('/api/add-favorite-movie', json=movie_data)
+    assert response.status_code == 201
+    assert response.json['status'] == 'success'
+    assert "Movie 'Some Movie'" in response.json['message']
 
 
 # --- Get Favorite Movie ---

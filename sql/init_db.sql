@@ -5,6 +5,6 @@ CREATE TABLE movies (
     genre TEXT NOT NULL,
     description TEXT NOT NULL,
     year INTEGER NOT NULL 
-    UNIQUE(name)
+    UNIQUE(title)
 );
 

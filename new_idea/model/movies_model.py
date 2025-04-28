@@ -15,36 +15,54 @@ configure_logger(logger)
 class Movies(db.Model):
     __tablename__ = 'movies'
 
-# Define columns for the table
-id = db.Column(db.Integer, primary_key=True)  # Auto-incremented ID
-name = db.Column(db.String(100), nullable=False, unique=True)
-genre = db.Column(db.String(100), nullable=True)
-description = db.Column(db.Text, nullable=True)
-year = db.Column(db.String(4), nullable=True)
+    # Define columns for the table
+    id = db.Column(db.Integer, primary_key=True)  # Auto-incremented ID
+    title = db.Column(db.String(100), nullable=False, unique=True)
+    actors = db.Column(db.String(100), nullable=True)
+    year = db.Column(db.String(4), nullable=True)
 
-def __init__(self, name, genre, description, year):
-    self.name = name
-    self.genre = genre
-    self.description = description
+def __init__(self, title, year, actors):
+    self.title = title
     self.year = year
+    self.actors = actors
 
 @classmethod
 def add_favorite_movie(cls, title):
     """Add a movie as a favorite by fetching details from the IMDB API."""
-    movie_details = cls.get_movie_details(title)
+    logger.info(f"Adding a movie to the list: {title}")
 
-    if movie_details:
-        new_movie = cls(
-            name=title,
-            genre=movie_details['genre'],
-            description=movie_details['description'],
-            year=movie_details['year']
-        )
+    movie_details = cls.get_movie_details(title)
+    
+    try:
+            new_movie = cls(
+                name=title,
+                actors=movie_details['genre'],
+                year=movie_details['year']
+            )
+    
+    except ValueError as e:
+        logger.warning(f"Validation failed: {e}")
+        raise
+
+    try:
+        #check for exisitng movie with the same name
+        existing = Movies.query.filter_by(title=title.strip()).first()
+        if existing:
+            logger.error(f"Movie with name '{title}' already exists.")
+            raise IntegrityError(f"Boxer with name '{title}' already exists.", params=None, orig=None)
+        
         db.session.add(new_movie)
         db.session.commit()
+        logger.info(f"Movie created successfully: {title}")
         return new_movie
-    else:
-        return None
+    except IntegrityError:
+        db.session.rollback()
+        logger.error(f"Movie with name '{title}' already exists.")
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"Database error during creation: {e}") 
+        db.session.rollback()
+        raise
 
 @classmethod
 def get_movie_details(cls, title):
