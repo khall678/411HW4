@@ -5,6 +5,7 @@ import requests
 from new_idea.utils.logger import configure_logger
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
 #Get api info
@@ -16,7 +17,6 @@ configure_logger(logger)
 
 
 base_URL = "https://imdb232.p.rapidapi.com/api/search"
-
 
 def get_movie_info(movie_name):
     """
@@ -65,4 +65,6 @@ def get_movie_info(movie_name):
     except requests.exceptions.RequestException as e:
         logger.error(f"Request to imdb232.p.rapidapi.com failed: {e}")
         raise RuntimeError(f"Request to imdb232.p.rapidapi.com failed: {e}")
+
+
 

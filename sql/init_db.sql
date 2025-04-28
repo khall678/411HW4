@@ -1,11 +1,10 @@
-DROP TABLE IF EXISTS boxers;
-CREATE TABLE boxers (
+DROP TABLE IF EXISTS movies;
+CREATE TABLE movies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    weight INTEGER NOT NULL CHECK(weight >= 125),
-    height INTEGER NOT NULL CHECK(height > 0),
-    reach INTEGER NOT NULL CHECK(reach > 0),
-    age INTEGER NOT NULL CHECK(18 <= age <= 40),
+    title TEXT NOT NULL,
+    genre TEXT NOT NULL,
+    description TEXT NOT NULL,
+    year INTEGER NOT NULL 
     UNIQUE(name)
 );
 
