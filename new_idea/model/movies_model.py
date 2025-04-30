@@ -16,17 +16,29 @@ configure_logger(logger)
 
 class Movies(db.Model):
     __tablename__ = 'movies'
+    
+    """This model maps to the 'movie' table in the database and stores personal
+    and performance-related attributes such as title, year, and actors. Used in a Flask-SQLAlchemy application to
+    manage movie data and run simulations"""
 
     # Define columns for the table
     id = db.Column(db.Integer, primary_key=True)  # Auto-incremented ID
     title = db.Column(db.String(100), nullable=False, unique=True)
-    actors = db.Column(db.String(100))
+    actors = db.Column(db.String(500))
     year = db.Column(db.Integer)
 
-    #def __init__(self, title, year, actors):
-        #self.title = title
-        #self.year = year
-        #self.actors = actors
+    def __init__(self, title, year, actors):
+        """Initialize a new Movie instance with basic attributes.
+
+        Args:
+            title (str): The movies's title. Must be unique.
+            year (int): The movies's year.
+            actors (string): The movies's actors.
+            """
+        
+        self.title = title
+        self.year = year
+        self.actors = actors
 
     @classmethod
     def add_favorite_movie(cls, title):
@@ -106,6 +118,7 @@ class Movies(db.Model):
     @classmethod
     def see_all_favorites(cls):
         """Retrieve a simple list of all favorite movie titles."""
+        logger.info(f"Attempting to retrieve all movies from the list")
         try:
             movies = cls.query.all()
             return [movie.title for movie in movies]
@@ -116,6 +129,7 @@ class Movies(db.Model):
     @classmethod
     def delete_favorite_movie(cls, movie_id):
         """Delete a favorite movie by its ID."""
+        logger.info(f"Attempting to retrieve movie with ID {movie_id}")
         try:
             movie = cls.query.get(movie_id)
             if movie:
@@ -137,6 +151,7 @@ class Movies(db.Model):
     @classmethod
     def clear_all_favorites(cls):
         """Delete all favorite movies from the list."""
+        logger.info(f"Attempting to retrieve clear all movies from the list")
         try:
             cls.query.delete()  # Deletes all records from the table
             db.session.commit()
