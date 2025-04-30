@@ -18,8 +18,8 @@ class Movies(db.Model):
     # Define columns for the table
     id = db.Column(db.Integer, primary_key=True)  # Auto-incremented ID
     title = db.Column(db.String(100), nullable=False, unique=True)
-    actors = db.Column(db.String(100), nullable=True)
-    year = db.Column(db.String(4), nullable=True)
+    actors = db.Column(db.String(100), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
 
     def __init__(self, title, year, actors):
         self.title = title
@@ -51,7 +51,7 @@ class Movies(db.Model):
                 new_movie = Movies(
                     title=title,
                     year=year,
-                    actors=actors,
+                    actors=', '.join(actors)
                 )
         
         except ValueError as e:
@@ -82,51 +82,71 @@ class Movies(db.Model):
     def get_movie_details(cls, title):
         """Fetch movie details (title, actors, year) from the database."""
         # Look for the movie in the database
-        movie = cls.query.filter_by(title=title.strip()).first()
-        
-        if movie:
+        logger.info(f"Attempting to retrieve movie details   with title {title}")
+        try:
+            movie = cls.query.filter_by(title=title.strip()).first()
+            if not movie:
+                logger.info(f"Movie with title {title} not found.")
+                raise ValueError(f"movie with title {title} not found.")
+            
+            logger.info(f"Successfully retrieved boxer: {movie.title}")
             return {
                 'title': movie.title,
                 'actors': movie.actors,
                 'year': movie.year
             }
-        else:
-            logger.error(f"Movie '{title}' not found in favorites.")
-            return None
+        except ValueError as e:
+            logger.info(f"Movie with title {title} not found.")
+            raise
+        except SQLAlchemyError as e:
+            logger.error(f"Database error while retrieving movie with title {title}: {e}")
+            raise
+
     
 
     @classmethod
     def see_all_favorites(cls):
         """Retrieve a simple list of all favorite movie titles."""
-        movies = cls.query.all()
-        return [movie.title for movie in movies]
+        try:
+            movies = cls.query.all()
+            return [movie.title for movie in movies]
+        except SQLAlchemyError as e:
+            logger.error(f"Error fetching all movie titles: {e}")
+            raise
 
     @classmethod
     def delete_favorite_movie(cls, movie_id):
         """Delete a favorite movie by its ID."""
-        movie = cls.query.get(movie_id)
-        if movie:
-            db.session.delete(movie)
-            db.session.commit()
-            return {
-                "message": f"Movie '{movie.title}' deleted successfully.",
-                "deleted_id": movie.id
-            }
-        else:
-            return {
-                "error": f"No movie found with ID {movie_id}."
-            }
+        try:
+            movie = cls.query.get(movie_id)
+            if movie:
+                db.session.delete(movie)
+                db.session.commit()
+                logger.info(f"Movie '{movie.title}' deleted successfully.")
+                return {
+                    "message": f"Movie '{movie.title}' deleted successfully.",
+                    "deleted_id": movie.id
+                }
+            else:
+                logger.warning(f"No movie found with ID {movie_id}.")
+                return {"error": f"No movie found with ID {movie_id}."}
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            logger.error(f"Error deleting movie with ID {movie_id}: {e}")
+            raise
+
     @classmethod
     def clear_all_favorites(cls):
         """Delete all favorite movies from the list."""
         try:
             cls.query.delete()  # Deletes all records from the table
             db.session.commit()
+            logger.info("All favorite movies have been deleted.")
             return {"message": "All favorite movies have been deleted."}
-        except Exception as e:
+        except SQLAlchemyError as e:
             db.session.rollback()
-            return {"error": f"An error occurred while deleting all movies: {str(e)}"}
-
+            logger.error(f"An error occurred while deleting all movies: {e}")
+            raise
 
 
 
