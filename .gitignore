@@ -1,2 +1,3 @@
 #Files to ignore
 .env
+meal_max_venv/
