@@ -376,41 +376,50 @@ def create_app(config_name='production'):
 
 
 
-    @app.route('/api/delete-favorite-movie/<int:movie_id>', methods=['DELETE'])
+    @app.route('/api/delete-favorite-movie', methods=['DELETE'])
     @login_required
-    def delete_favorite_movie(movie_id):
-        """Delete a movie from the user's favorites.
+    def delete_favorite_movie():
+        """
+        Route to delete a movie from the user's favorite list by movie_id.
 
-        Args:
-            movie_id (int): The ID of the movie to delete.
+        Expected JSON input:
+            - movie_id (int): The ID of the movie to delete.
 
         Returns:
-            JSON response indicating success or failure.
+            JSON indicating success or failure.
         """
         try:
-            movie = Movies.query.get(movie_id)
+            data = request.get_json()
 
-            if not movie:
+            if "movie_id" not in data or not isinstance(data["movie_id"], int):
                 return make_response(jsonify({
                     "status": "error",
-                    "message": "Movie not found"
-                }), 404)
+                    "message": "Missing or invalid 'movie_id' field"
+                }), 400)
 
-            db.session.delete(movie)
-            db.session.commit()
+            movie_id = data["movie_id"]
+            result = Movies.delete_favorite_movie(movie_id)
+
+            if "error" in result:
+                return make_response(jsonify({
+                    "status": "error",
+                    "message": result["error"]
+                }), 404)
 
             return make_response(jsonify({
                 "status": "success",
-                "message": f"Movie with ID {movie_id} deleted from favorites"
+                "message": result["message"],
+                "deleted_id": result["deleted_id"]
             }), 200)
 
         except Exception as e:
-            app.logger.error(f"Failed to delete movie: {e}")
+            app.logger.error(f"Error deleting movie: {e}")
             return make_response(jsonify({
                 "status": "error",
                 "message": "An error occurred while deleting the movie",
                 "details": str(e)
             }), 500)
+
 
     @app.route('/api/clear-all-favorites', methods=['DELETE'])
     @login_required
@@ -437,44 +446,66 @@ def create_app(config_name='production'):
                 "details": str(e)
             }), 500)
 
-    @app.route('/api/get-movie-details/<int:movie_id>', methods=['GET'])
+    @app.route('/api/get-movie-details', methods=['POST'])
     @login_required
-    def get_movie_details(movie_id):
-        """Fetch detailed information about a specific movie.
+    def get_movie_details():
+        """
+        Route to retrieve movie details from the database.
 
-        Args:
-            movie_id (int): The ID of the movie to fetch details for.
+        Expected JSON Input:
+            - title (str): The movie title.
 
         Returns:
-            JSON response with movie details (e.g., title, year, actors, etc.).
-        """
-        try:
-            # Fetch the movie from the database by movie_id
-            movie = Movies.query.get(movie_id)
+            JSON response with movie details (title, year, actors) or error message.
 
-            if not movie:
+        Raises:
+            400 error if input validation fails.
+            404 error if movie is not found.
+            500 error for database or server issues.
+        """
+        app.logger.info("Received request to fetch movie details")
+
+        try:
+            data = request.get_json()
+
+            if not data or 'title' not in data:
+                app.logger.warning("Missing 'title' in request")
                 return make_response(jsonify({
                     "status": "error",
-                    "message": "Movie not found"
-                }), 404)
+                    "message": "Missing required field: title"
+                }), 400)
 
-            # Prepare the movie details to return
-            movie_details = {
-                "title": movie.title,
-                "year": movie.year,
-                "actors": movie.actors,
-            }
+            title = data['title']
+            if not isinstance(title, str):
+                app.logger.warning("Invalid input type for 'title'")
+                return make_response(jsonify({
+                    "status": "error",
+                    "message": "Invalid input type: title should be a string"
+                }), 400)
+
+            title = title.strip()
+            app.logger.info(f"Attempting to retrieve movie details for title: {title}")
+
+            movie = Movies.get_movie_details(title)
+        
 
             return make_response(jsonify({
                 "status": "success",
-                "movie": movie_details
+                "data": movie
             }), 200)
 
-        except Exception as e:
-            app.logger.error(f"Failed to fetch movie details: {e}")
+        except ValueError as e:
+            app.logger.warning(f"Movie not found: {e}")
             return make_response(jsonify({
                 "status": "error",
-                "message": "An error occurred while fetching movie details",
+                "message": str(e)
+            }), 404)
+
+        except Exception as e:
+            app.logger.error(f"Internal error while fetching movie details: {e}")
+            return make_response(jsonify({
+                "status": "error",
+                "message": "An internal error occurred while retrieving the movie.",
                 "details": str(e)
             }), 500)
 

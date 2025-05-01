@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 
 
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -130,6 +131,7 @@ class Movies(db.Model):
             
             logger.info(f"Successfully retrieved boxer: {movie.title}")
             return {
+                'id': movie.id,
                 'title': movie.title,
                 'actors': movie.actors,
                 'year': movie.year
@@ -219,7 +221,4 @@ class Movies(db.Model):
             db.session.rollback()
             logger.error(f"An error occurred while deleting all movies: {e}")
             raise
-
-
-
 

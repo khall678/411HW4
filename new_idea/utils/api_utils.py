@@ -39,7 +39,10 @@ def get_movie_info(movie_name):
         "X-RapidAPI-Host": X_RAPIDAPI_HOST
         }
 
+
         response = requests.get(url, headers=headers, timeout=5)
+        logger.debug(f"Response status code: {response.status_code}")
+        logger.debug(f"Response body: {response.text}")
 
         # Check if the request was successful
         response.raise_for_status()
