@@ -42,7 +42,23 @@ class Movies(db.Model):
 
     @classmethod
     def add_favorite_movie(cls, title):
-        """Add a movie as a favorite by fetching details from the IMDB API."""
+        """Add a movie as a favorite by fetching details from the IMDB API.
+        
+        This method queries IMDb data using an external utility function, 
+        extracts the principal actors and release year, and stores the movie
+        in the database if it doesn't exist already
+        
+        Args:
+            title(str): The title of the movie to add
+            
+        Returns:
+            Movies: The newly created movie instance
+            
+        Raises:
+            ValueError: If no movie data is found for the given title
+            SQLAlchemyError: If a database error occurs during creation 
+        
+        """
         logger.info(f"Adding a movie to the list: {title}")
 
         movie_info = get_movie_info(title).get('data', {}).get('mainSearch', {}).get('edges', [])
@@ -91,7 +107,19 @@ class Movies(db.Model):
 
     @classmethod
     def get_movie_details(cls, title):
-        """Fetch movie details (title, actors, year) from the database."""
+        """Fetch movie details (title, actors, year) from the database.
+        
+        Args: 
+            title (str): The title of the movie to retrieve
+            
+        Returns:
+            dict: A dictionary containing 'title', 'actors', and 'year'
+            
+        Raises:
+            ValueError: If no movie with the given title exists
+            SQLAlchemyError: If a database error occurs during retrieval
+            
+        """
         # Look for the movie in the database
         logger.info(f"Attempting to retrieve movie details   with title {title}")
         try:
@@ -117,7 +145,15 @@ class Movies(db.Model):
 
     @classmethod
     def see_all_favorites(cls):
-        """Retrieve a simple list of all favorite movie titles."""
+        """Retrieve a simple list of all favorite movie titles.
+        
+        Returns:
+            list: A list of movie titles
+            
+        Raises:
+            SQLAlchemyError: If a database error occurs during retrieval
+            
+        """
         logger.info(f"Attempting to retrieve all movies from the list")
         try:
             movies = cls.query.all()
@@ -128,7 +164,19 @@ class Movies(db.Model):
 
     @classmethod
     def delete_favorite_movie(cls, movie_id):
-        """Delete a favorite movie by its ID."""
+        """Delete a favorite movie by its ID.
+        
+        Args:
+            movie_id (int): The ID of the movie to delete
+            
+        Returns:
+            dict: A message and the ID of the deleted movie or an 
+                  error message if movie wasn't found
+                  
+        Raises:
+            SQLAlchemyError: If a database error occurs during deletion
+            
+        """
         logger.info(f"Attempting to retrieve movie with ID {movie_id}")
         try:
             movie = cls.query.get(movie_id)
@@ -150,7 +198,17 @@ class Movies(db.Model):
 
     @classmethod
     def clear_all_favorites(cls):
-        """Delete all favorite movies from the list."""
+        """Delete all favorite movies from the list.
+        
+        This method removes all entries from 'movies' table
+        
+        Returns:
+            dict: A message confirming deletion
+            
+        Raises:
+            SQLAlchemyError: If a database error occurs during operation 
+            
+        """
         logger.info(f"Attempting to retrieve clear all movies from the list")
         try:
             cls.query.delete()  # Deletes all records from the table
